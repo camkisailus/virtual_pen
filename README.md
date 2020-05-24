@@ -14,6 +14,8 @@ Drawing will start immediately... cover the pen if don't want to draw anything
 
 `c` clears your drawing canvas
 
+Press esc or `q` to close the program
+
 
 **For CSRT Tracking:**
 
