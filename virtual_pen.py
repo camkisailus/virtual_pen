@@ -1,13 +1,16 @@
 import cv2
 import numpy as np
 import time
+import imutils
+import argparse
 
 
-def main():
+
+
+def masking():
     # Required for trackbars
     def nothing(x):
         pass
-
     # Init webcam feed
     cap = cv2.VideoCapture(0)
     cap.set(3, 1280)
@@ -87,7 +90,7 @@ def main():
         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
         if canvas is None:
-        	canvas = np.zeros_like(frame)
+            canvas = np.zeros_like(frame)
 
         if penval is not None:
             lower_range = penval[0]
@@ -111,15 +114,15 @@ def main():
             x2,y2,w,h = cv2.boundingRect(c)
 
             if x1 != 0 and y1 != 0:
-            	if eraser:
-            		canvas = cv2.circle(canvas, (x2,y2),20,(0,0,0),-1)
-            	else:
-            		canvas = cv2.line(canvas,(x1,y1),(x2,y2), [255,0,0], 5)
+                if eraser:
+                    canvas = cv2.circle(canvas, (x2,y2),20,(0,0,0),-1)
+                else:
+                    canvas = cv2.line(canvas,(x1,y1),(x2,y2), [255,0,0], 5)
             x1,y1 = x2,y2
 
 
         else:
-        	x1,y1 = 0,0
+            x1,y1 = 0,0
 
         frame = cv2.add(frame, canvas)
         
@@ -130,21 +133,74 @@ def main():
         if k==27:
             break
         if k== ord('c'):
-        	canvas = None
+            canvas = None
         if k== ord('e'):
-        	eraser = not eraser
+            eraser = not eraser
 
 
     cap.release()
     cv2.destroyAllWindows()
 
+def tracking():
+    # Init webcam feed
+    cap = cv2.VideoCapture(0)
+    cap.set(3, 1280)
+    cap.set(4, 720)
+    tracker = cv2.TrackerCSRT_create()
+    cv2.namedWindow('Image', cv2.WINDOW_NORMAL)
+    init_bb = None
+    canvas = None
+    eraser = False
+    x1 = y1 = 0
 
 
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+        if canvas is None:
+            canvas = np.zeros_like(frame)
+        
+        if init_bb is not None:
+            (ret, bbox) = tracker.update(frame)
+            if ret:
+                (x2,y2,_,_) = [int(val) for val in bbox]
+                if x1 != 0 and y1 != 0:
+                    if eraser:
+                        canvas = cv2.circle(canvas, (x2,y2),20,(0,0,0),-1)
+                    else:
+                        canvas = cv2.line(canvas,(x1,y1),(x2,y2), [0, 255,0], 5)
+                x1,y1 = x2,y2
+            else:
+                x1,y1 = 0,0
+
+        frame = cv2.add(frame,canvas)
+        cv2.imshow('Image', frame)
+
+        key = cv2.waitKey(1) & 0xFF
+
+        if key == ord('s'):
+            init_bb = cv2.selectROI("Image", frame, fromCenter = False, showCrosshair = True)
+            tracker.init(frame, init_bb)
+        if key == ord('q') or key == 27:
+            break
+        if key == ord('e'):
+            eraser = not eraser
+        if key == ord('c'):
+            canvas = None
+
+    cap.release()
+    cv2.destroyAllWindows()
 
 if __name__ == '__main__':
-    main()
-
-
+    ap = argparse.ArgumentParser()
+    ap.add_argument("-t", "--tracker", action="store_true", help="If you want to use tracking instead of masking")
+    args = ap.parse_args()
+    
+    if args.tracker:
+    	tracking()
+    else:
+    	masking()
 
 
 
