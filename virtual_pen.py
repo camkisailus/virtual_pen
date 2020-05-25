@@ -113,7 +113,7 @@ def masking():
 
             if x1 != 0 and y1 != 0:
                 if eraser:
-                    canvas = cv2.circle(canvas, (x2, y2), 20, (0, 0, 0), -1)
+                    canvas = cv2.circle(canvas, (x2, y2), 50, (0, 0, 0), -1)
                 else:
                     canvas = cv2.line(
                         canvas, (x1, y1), (x2, y2), [
@@ -165,7 +165,7 @@ def tracking():
                 if x1 != 0 and y1 != 0:
                     if eraser:
                         canvas = cv2.circle(
-                            canvas, (x2, y2), 20, (0, 0, 0), -1)
+                            canvas, (x2, y2), 50, (0, 0, 0), -1)
                     else:
                         canvas = cv2.line(
                             canvas, (x1, y1), (x2, y2), [
