@@ -5,8 +5,6 @@ import imutils
 import argparse
 
 
-
-
 def masking():
     # Required for trackbars
     def nothing(x):
@@ -15,7 +13,6 @@ def masking():
     cap = cv2.VideoCapture(0)
     cap.set(3, 1280)
     cap.set(4, 720)
-
 
     cv2.namedWindow("Trackbars")
 
@@ -40,23 +37,23 @@ def masking():
         u_s = cv2.getTrackbarPos("U-S", "Trackbars")
         u_v = cv2.getTrackbarPos("U-V", "Trackbars")
 
-        lower_range = np.array([l_h,l_s,l_v])
-        upper_range = np.array([u_h,u_s,u_v])
+        lower_range = np.array([l_h, l_s, l_v])
+        upper_range = np.array([u_h, u_s, u_v])
 
         mask = cv2.inRange(hsv, lower_range, upper_range)
-        res = cv2.bitwise_and(frame,frame,mask=mask)
+        res = cv2.bitwise_and(frame, frame, mask=mask)
         mask_3 = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
 
         stacked = np.hstack((mask_3, frame, res))
 
-        cv2.imshow('Trackbars', cv2.resize(stacked,None,fx=0.4,fy=0.4))
+        cv2.imshow('Trackbars', cv2.resize(stacked, None, fx=0.4, fy=0.4))
 
         key = cv2.waitKey(1)
         if key == 27:
             break
 
         if key == ord('s'):
-            arr = [[l_h,l_s,l_v], [u_h,u_s,u_v]]
+            arr = [[l_h, l_s, l_v], [u_h, u_s, u_v]]
 
             print(arr)
             np.save('penval', arr)
@@ -68,14 +65,12 @@ def masking():
     if load_from_disk:
         penval = np.load('penval.npy')
 
-
     # Init webcam feed
     cap = cv2.VideoCapture(0)
     cap.set(3, 1280)
     cap.set(4, 720)
 
-    kernel = np.ones((5,5), np.uint8)
-
+    kernel = np.ones((5, 5), np.uint8)
 
     noise_threshhold = 1000
     x1 = y1 = 0
@@ -97,49 +92,50 @@ def masking():
             upper_range = penval[1]
 
         else:
-            lower_range = [100,100,100]
-            upper_range = [150,150,150]
-
+            lower_range = [100, 100, 100]
+            upper_range = [150, 150, 150]
 
         mask = cv2.inRange(hsv, lower_range, upper_range)
 
-        mask = cv2.erode(mask, kernel, iterations = 1)
-        mask = cv2.dilate(mask, kernel , iterations = 2)
+        mask = cv2.erode(mask, kernel, iterations=1)
+        mask = cv2.dilate(mask, kernel, iterations=2)
 
-        contours, heirarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        contours, heirarchy = cv2.findContours(
+            mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-        if contours and cv2.contourArea(max(contours, key = cv2.contourArea)) > noise_threshhold:
-            c = max(contours, key = cv2.contourArea)
+        if contours and cv2.contourArea(
+                max(contours, key=cv2.contourArea)) > noise_threshhold:
+            c = max(contours, key=cv2.contourArea)
 
-            x2,y2,w,h = cv2.boundingRect(c)
+            x2, y2, w, h = cv2.boundingRect(c)
 
             if x1 != 0 and y1 != 0:
                 if eraser:
-                    canvas = cv2.circle(canvas, (x2,y2),20,(0,0,0),-1)
+                    canvas = cv2.circle(canvas, (x2, y2), 20, (0, 0, 0), -1)
                 else:
-                    canvas = cv2.line(canvas,(x1,y1),(x2,y2), [255,0,0], 5)
-            x1,y1 = x2,y2
-
+                    canvas = cv2.line(
+                        canvas, (x1, y1), (x2, y2), [
+                            255, 0, 0], 5)
+            x1, y1 = x2, y2
 
         else:
-            x1,y1 = 0,0
+            x1, y1 = 0, 0
 
         frame = cv2.add(frame, canvas)
-        
 
-        cv2.imshow('DrawingBoard',frame)
+        cv2.imshow('DrawingBoard', frame)
         k = cv2.waitKey(1)
 
-        if k==27:
+        if k == 27:
             break
-        if k== ord('c'):
+        if k == ord('c'):
             canvas = None
-        if k== ord('e'):
+        if k == ord('e'):
             eraser = not eraser
-
 
     cap.release()
     cv2.destroyAllWindows()
+
 
 def tracking():
     # Init webcam feed
@@ -153,34 +149,37 @@ def tracking():
     eraser = False
     x1 = y1 = 0
 
-
     while True:
         ret, frame = cap.read()
         if not ret:
             break
         if canvas is None:
             canvas = np.zeros_like(frame)
-        
+
         if init_bb is not None:
             (ret, bbox) = tracker.update(frame)
             if ret:
-                (x2,y2,_,_) = [int(val) for val in bbox]
+                (x2, y2, _, _) = [int(val) for val in bbox]
                 if x1 != 0 and y1 != 0:
                     if eraser:
-                        canvas = cv2.circle(canvas, (x2,y2),20,(0,0,0),-1)
+                        canvas = cv2.circle(
+                            canvas, (x2, y2), 20, (0, 0, 0), -1)
                     else:
-                        canvas = cv2.line(canvas,(x1,y1),(x2,y2), [0, 255,0], 5)
-                x1,y1 = x2,y2
+                        canvas = cv2.line(
+                            canvas, (x1, y1), (x2, y2), [
+                                0, 255, 0], 5)
+                x1, y1 = x2, y2
             else:
-                x1,y1 = 0,0
+                x1, y1 = 0, 0
 
-        frame = cv2.add(frame,canvas)
+        frame = cv2.add(frame, canvas)
         cv2.imshow('Image', frame)
 
         key = cv2.waitKey(1) & 0xFF
 
         if key == ord('s'):
-            init_bb = cv2.selectROI("Image", frame, fromCenter = False, showCrosshair = True)
+            init_bb = cv2.selectROI(
+                "Image", frame, fromCenter=False, showCrosshair=True)
             tracker.init(frame, init_bb)
         if key == ord('q') or key == 27:
             break
@@ -192,15 +191,14 @@ def tracking():
     cap.release()
     cv2.destroyAllWindows()
 
+
 if __name__ == '__main__':
     ap = argparse.ArgumentParser()
-    ap.add_argument("-t", "--tracker", action="store_true", help="If you want to use tracking instead of masking")
+    ap.add_argument("-t", "--tracker", action="store_true",
+                    help="If you want to use tracking instead of masking")
     args = ap.parse_args()
-    
+
     if args.tracker:
-    	tracking()
+        tracking()
     else:
-    	masking()
-
-
-
+        masking()
